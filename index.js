@@ -6,8 +6,12 @@ const cors = require('cors'); // Import the cors middleware
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+app.use(cors({
+    credentials: true,
+    origin: true
+}));
+
 app.use(bodyParser.json());
-app.use(cors()); // Enable CORS for all origins (not recommended for production) 
 
 app.post('/api/qr-code', (req, res) => {
     const { qrText } = req.body;
