@@ -13,7 +13,9 @@ const PORT = process.env.PORT || 3001;
 
 const corsOptions = {
     credentials: true,
-    origin: ['http://197.13.9.211:3000', 'http://197.13.9.211:80'] // Whitelist the domains you want to allow
+    origin: ['http://197.13.9.211:3000', 'http://197.13.9.211:80'], // Whitelist the domains you want to allow
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-Trigger'], // Allow specific headers
+    methods: ['GET', 'POST', 'OPTIONS'] // Allow specific HTTP methods
 };
 
 app.use(cors(corsOptions));
