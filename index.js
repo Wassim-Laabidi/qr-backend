@@ -13,13 +13,15 @@ const PORT = process.env.PORT || 3001;
 
 const corsOptions = {
     credentials: true,
-    origin: ['http://197.13.9.211:3000'], // Whitelist the domains you want to allow
-    allowedHeaders: ['Content-Type'], // Allow specific headers
-    methods: ['GET', 'POST', 'OPTIONS'], // Allow specific HTTP methods
-    preflightContinue: false
+    origin: 'http://197.13.9.211:3000', // Whitelist your frontend origin
+    methods: ['GET', 'POST', 'OPTIONS'], // Allowed methods
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-Trigger'], // Allowed headers
+    optionsSuccessStatus: 200 // Some legacy browsers (IE11, various SmartTVs) choke on 204
 };
 
 app.use(cors(corsOptions));
+
+app.options('*', cors(corsOptions)); // Explicitly handle OPTIONS requests
 
 app.use(bodyParser.json());
 
