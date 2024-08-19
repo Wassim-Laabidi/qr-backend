@@ -5,23 +5,38 @@ const cors = require('cors'); // Import the cors middleware
 
 const app = express();
 const PORT = process.env.PORT || 3001;
-
+//Step1
 // app.use(cors({
 //     credentials: true,
 //     origin: true
 // }));
 
-const corsOptions = {
-    credentials: true,
-    origin: 'http://197.13.9.211:3000', // Whitelist your frontend origin
-    methods: ['GET', 'POST', 'OPTIONS'], // Allowed methods
-    allowedHeaders: ['Content-Type', 'Authorization', 'x-Trigger'], // Allowed headers
-    optionsSuccessStatus: 200 // Some legacy browsers (IE11, various SmartTVs) choke on 204
-};
+//Step2
+// const corsOptions = {
+//     credentials: true,
+//     origin: 'http://197.13.9.211:3000', // Whitelist your frontend origin
+//     methods: ['GET', 'POST', 'OPTIONS'], // Allowed methods
+//     allowedHeaders: ['Content-Type', 'Authorization', 'x-Trigger'], // Allowed headers
+//     optionsSuccessStatus: 200 // Some legacy browsers (IE11, various SmartTVs) choke on 204
+// };
 
-app.use(cors(corsOptions));
+// app.use(cors(corsOptions));
 
-app.options('*', cors(corsOptions)); // Explicitly handle OPTIONS requests
+// app.options('*', cors(corsOptions)); // Explicitly handle OPTIONS requests
+
+app.use(cors()); // Enable CORS globally for all routes
+
+app.use(bodyParser.json());
+
+// Sample GET route with custom CORS headers
+app.get('/', (req, res) => {
+    res.setHeader('Access-Control-Allow-Origin', '*'); // Allow requests from any origin
+    res.setHeader('Access-Control-Allow-Credentials', 'true'); // Allow credentials (cookies, authorization headers, etc.)
+    res.setHeader('Access-Control-Max-Age', '1800'); // Cache the preflight response for 1800 seconds (30 minutes)
+    res.setHeader('Access-Control-Allow-Headers', 'content-type'); // Allow specific headers
+    res.setHeader('Access-Control-Allow-Methods', 'PUT, POST, GET, DELETE, PATCH, OPTIONS'); // Allow specific HTTP methods
+    res.send('Hello, world!');
+});
 
 app.use(bodyParser.json());
 
