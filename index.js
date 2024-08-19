@@ -6,10 +6,17 @@ const cors = require('cors'); // Import the cors middleware
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-app.use(cors({
+// app.use(cors({
+//     credentials: true,
+//     origin: true
+// }));
+
+const corsOptions = {
     credentials: true,
-    origin: true
-}));
+    origin: ['http://197.13.9.211:3000', 'http://197.13.9.211:80'] // Whitelist the domains you want to allow
+};
+
+app.use(cors(corsOptions));
 
 app.use(bodyParser.json());
 
