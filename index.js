@@ -116,7 +116,7 @@ const updateConfigMap = (qrText) => {
 // Function to reload the Home Assistant deployment
 const reloadHomeAssistant = () => {
     return new Promise((resolve, reject) => {
-        exec('kubectl rollout restart deployment/homeassistant --namespace iot-home-assistant', (error, stdout) => {
+        exec('kubectl rollout restart deployment/iot-home-assistant --namespace iot-home-assistant', (error, stdout) => {
             if (error) {
                 console.error('Error reloading Home Assistant deployment:', error);
                 return reject(error);
