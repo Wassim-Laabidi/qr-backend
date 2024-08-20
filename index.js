@@ -16,7 +16,7 @@ const corsOptions = {
     credentials: true,
     origin: true, // Whitelist your frontend origin
     methods: ['GET', 'POST', 'OPTIONS'], // Allowed methods
-    allowedHeaders: ['Content-Type', 'Authorization', 'x-Trigger'], // Allowed headers
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-Trigger', 'content-type', 'origin', 'accept'], // Allowed headers
     optionsSuccessStatus: 200 // Some legacy browsers (IE11, various SmartTVs) choke on 204
 };
 
@@ -33,7 +33,7 @@ app.get('/', (req, res) => {
     res.setHeader('Access-Control-Allow-Origin', '*'); // Allow requests from any origin
     res.setHeader('Access-Control-Allow-Credentials', 'true'); // Allow credentials (cookies, authorization headers, etc.)
     res.setHeader('Access-Control-Max-Age', '1800'); // Cache the preflight response for 1800 seconds (30 minutes)
-    res.setHeader('Access-Control-Allow-Headers', 'content-type'); // Allow specific headers
+    res.setHeader('Access-Control-Allow-Headers', 'content-type', 'origin', 'accept'); // Allow specific headers
     res.setHeader('Access-Control-Allow-Methods', 'PUT, POST, GET, DELETE, PATCH, OPTIONS'); // Allow specific HTTP methods
     res.send('Hello, world!');
 });
