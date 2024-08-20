@@ -6,7 +6,7 @@ const cors = require('cors');
 const app = express();
 const PORT = process.env.PORT || 3002;
 
-// Step 2: Define CORS options
+// CORS configuration
 const corsOptions = {
     credentials: true,
     origin: true,
@@ -15,10 +15,11 @@ const corsOptions = {
     optionsSuccessStatus: 200
 };
 
-// Enable CORS
+// Middleware
 app.use(cors(corsOptions));
 app.use(bodyParser.json());
 
+// API route to handle QR code processing
 app.post('/api/qr-code', async (req, res) => {
     try {
         const { qrText } = req.body;
@@ -28,17 +29,18 @@ app.post('/api/qr-code', async (req, res) => {
         await updateConfigMap(qrText);
         await reloadHomeAssistant();
 
-        // Respond with success after all operations are completed
+        // Respond with success
         res.status(200).json({ success: true, message: "QR code processed, ConfigMap updated, and Home Assistant reloaded successfully" });
 
     } catch (error) {
         console.error("Error processing request:", error);
 
-        // Respond with appropriate error status
+        // Respond with error
         res.status(500).json({ success: false, message: "Failed to process the request, update ConfigMap, or reload Home Assistant" });
     }
 });
 
+// Function to update the ConfigMap with new QR text
 const updateConfigMap = (qrText) => {
     return new Promise((resolve, reject) => {
         exec('kubectl get configmap home-assistant-config --namespace iot-home-assistant -o json', (error, stdout) => {
@@ -55,27 +57,31 @@ const updateConfigMap = (qrText) => {
                 return reject(parseError);
             }
 
+            // Append new data to the existing configuration
             let configurationYaml = configMap.data['configuration.yaml'];
             configurationYaml += `\n\n        - name: "${qrText}"`;
 
+            // Create patch object
             const patch = {
                 data: {
                     'configuration.yaml': configurationYaml
                 }
             };
 
+            // Apply the patch
             exec(`kubectl patch configmap home-assistant-config --namespace iot-home-assistant --type merge --patch '${JSON.stringify(patch)}'`, (patchError, patchStdout) => {
                 if (patchError) {
                     console.error('Error updating ConfigMap:', patchError);
                     return reject(patchError);
                 }
-                console.log('ConfigMap updated:', patchStdout);
+                console.log('ConfigMap updated successfully:', patchStdout);
                 resolve();
             });
         });
     });
 };
 
+// Function to reload the Home Assistant deployment
 const reloadHomeAssistant = () => {
     return new Promise((resolve, reject) => {
         exec('kubectl rollout restart deployment/homeassistant --namespace iot-home-assistant', (error, stdout) => {
@@ -83,12 +89,13 @@ const reloadHomeAssistant = () => {
                 console.error('Error reloading Home Assistant deployment:', error);
                 return reject(error);
             }
-            console.log('Home Assistant deployment reloaded:', stdout);
+            console.log('Home Assistant deployment reloaded successfully:', stdout);
             resolve();
         });
     });
 };
 
+// Start the server
 app.listen(PORT, () => {
     console.log(`Backend service running on port ${PORT}`);
 });
