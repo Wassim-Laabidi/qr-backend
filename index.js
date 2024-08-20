@@ -64,40 +64,30 @@ const updateConfigMap = (qrText) => {
 
             // Append new data to the existing configuration
             let configurationYaml = configMap.data['configuration.yaml'] || '';
-            configurationYaml += `\n\n    - name: "${qrText}"`;
+            configurationYaml += `\n\n        - name: "${qrText}"`;
 
-            // Create a temporary file with the new configuration
-            const fs = require('fs');
-            const patchFile = '/tmp/patch.yaml';
-
-            // Construct the patch YAML content
-            const patchYaml = `
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: home-assistant-config
-  namespace: iot-home-assistant
-data:
-  configuration.yaml: |-
-    ${configurationYaml.replace(/\n/g, '\n    ')}
-`;
-
-            fs.writeFileSync(patchFile, patchYaml);
-
-            // Apply the patch using `kubectl apply`
-            exec(`kubectl apply -f ${patchFile} --namespace iot-home-assistant`, (applyError, applyStdout) => {
-                if (applyError) {
-                    console.error('Error applying ConfigMap patch:', applyError);
-                    return reject(applyError);
+            // Create patch object
+            const patch = {
+                data: {
+                    'configuration.yaml': configurationYaml
                 }
-                console.log('ConfigMap patched successfully:', applyStdout);
+            };
+
+            // Properly escape JSON for the patch command
+            const patchJson = JSON.stringify(patch).replace(/'/g, "\\'").replace(/"/g, '\\"');
+
+            // Apply the patch
+            exec(`kubectl patch configmap home-assistant-config --namespace iot-home-assistant --type merge --patch "${patchJson}"`, (patchError, patchStdout) => {
+                if (patchError) {
+                    console.error('Error updating ConfigMap:', patchError);
+                    return reject(patchError);
+                }
+                console.log('ConfigMap updated successfully:', patchStdout);
                 resolve();
             });
         });
     });
 };
-
-
 
 // Function to reload the Home Assistant deployment
 const reloadHomeAssistant = () => {
