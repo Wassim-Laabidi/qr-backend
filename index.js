@@ -46,46 +46,55 @@ app.post('/api/qr-code', async (req, res) => {
 });
 
 // Function to update the ConfigMap with new QR text
+// Function to update the ConfigMap with new QR text
 const updateConfigMap = (qrText) => {
     return new Promise((resolve, reject) => {
-        exec('kubectl get configmap home-assistant-config --namespace iot-home-assistant -o json', (error, stdout) => {
-            if (error) {
-                console.error('Error fetching ConfigMap:', error);
-                return reject(error);
-            }
-
-            let configMap;
-            try {
-                configMap = JSON.parse(stdout);
-            } catch (parseError) {
-                console.error('Error parsing ConfigMap JSON:', parseError);
-                return reject(parseError);
-            }
-
-            // Append new data to the existing configuration
-            let configurationYaml = configMap.data['configuration.yaml'] || '';
-            configurationYaml += `\n\n        - name: "${qrText}"`;
-
-            // Create patch object
-            const patch = {
-                data: {
-                    'configuration.yaml': configurationYaml
+        exec(
+            'kubectl get configmap home-assistant-config --namespace iot-home-assistant -o json',
+            (error, stdout) => {
+                if (error) {
+                    console.error('Error fetching ConfigMap:', error);
+                    return reject(error);
                 }
-            };
 
-            // Properly escape JSON for the patch command
-            const patchJson = JSON.stringify(patch).replace(/'/g, "\\'").replace(/"/g, '\\"');
-
-            // Apply the patch
-            exec(`kubectl patch configmap home-assistant-config --namespace iot-home-assistant --type merge --patch "${patchJson}"`, (patchError, patchStdout) => {
-                if (patchError) {
-                    console.error('Error updating ConfigMap:', patchError);
-                    return reject(patchError);
+                let configMap;
+                try {
+                    configMap = JSON.parse(stdout);
+                } catch (parseError) {
+                    console.error('Error parsing ConfigMap JSON:', parseError);
+                    return reject(parseError);
                 }
-                console.log('ConfigMap updated successfully:', patchStdout);
-                resolve();
-            });
-        });
+
+                // Append new data to the existing configuration
+                let configurationYaml = configMap.data['configuration.yaml'] || '';
+                configurationYaml += `\n\n        - name: "${qrText}"`;
+
+                // Create patch object
+                const patch = {
+                    data: {
+                        'configuration.yaml': configurationYaml,
+                    },
+                };
+
+                // Properly escape JSON for the patch command
+                const patchJson = JSON.stringify(patch)
+                    .replace(/'/g, "\\'")
+                    .replace(/"/g, '\\"');
+
+                // Apply the patch
+                exec(
+                    `kubectl patch configmap home-assistant-config --namespace iot-home-assistant --type merge --patch "${patchJson}"`,
+                    (patchError, patchStdout) => {
+                        if (patchError) {
+                            console.error('Error updating ConfigMap:', patchError);
+                            return reject(patchError);
+                        }
+                        console.log('ConfigMap updated successfully:', patchStdout);
+                        resolve();
+                    }
+                );
+            }
+        );
     });
 };
 
