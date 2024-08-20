@@ -67,7 +67,9 @@ const updateConfigMap = (qrText) => {
 
                 // Append new data to the existing configuration
                 let configurationYaml = configMap.data['configuration.yaml'] || '';
-                configurationYaml += `\n\n        - name: "${qrText}"`;
+                // Properly escape special characters for YAML
+                const escapedQrText = qrText.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+                configurationYaml += `\n\n        - name: "${escapedQrText}"`;
 
                 // Create patch object
                 const patch = {
@@ -76,23 +78,36 @@ const updateConfigMap = (qrText) => {
                     },
                 };
 
-                // Properly escape JSON for the patch command
-                const patchJson = JSON.stringify(patch)
-                    .replace(/'/g, "\\'")
-                    .replace(/"/g, '\\"');
+                // Apply the patch using kubectl's --patch-file
+                const patchJson = JSON.stringify(patch, null, 2); // Pretty-print JSON for readability
+                const fs = require('fs');
+                const tmpFilePath = '/tmp/patch.json';
 
-                // Apply the patch
-                exec(
-                    `kubectl patch configmap home-assistant-config --namespace iot-home-assistant --type merge --patch "${patchJson}"`,
-                    (patchError, patchStdout) => {
-                        if (patchError) {
-                            console.error('Error updating ConfigMap:', patchError);
-                            return reject(patchError);
-                        }
-                        console.log('ConfigMap updated successfully:', patchStdout);
-                        resolve();
+                fs.writeFile(tmpFilePath, patchJson, (err) => {
+                    if (err) {
+                        console.error('Error writing patch file:', err);
+                        return reject(err);
                     }
-                );
+
+                    exec(
+                        `kubectl patch configmap home-assistant-config --namespace iot-home-assistant --patch-file="${tmpFilePath}"`,
+                        (patchError, patchStdout) => {
+                            if (patchError) {
+                                console.error('Error updating ConfigMap:', patchError);
+                                return reject(patchError);
+                            }
+                            console.log('ConfigMap updated successfully:', patchStdout);
+
+                            // Optionally delete the temporary file
+                            fs.unlink(tmpFilePath, (unlinkErr) => {
+                                if (unlinkErr) {
+                                    console.error('Error deleting temporary patch file:', unlinkErr);
+                                }
+                                resolve();
+                            });
+                        }
+                    );
+                });
             }
         );
     });
