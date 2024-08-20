@@ -25,6 +25,11 @@ app.post('/api/qr-code', async (req, res) => {
         const { qrText } = req.body;
         console.log("Received qrText:", qrText);
 
+        // Validate qrText
+        if (typeof qrText !== 'string' || !qrText.trim()) {
+            return res.status(400).json({ success: false, message: "Invalid QR text" });
+        }
+
         // Update ConfigMap and reload Home Assistant
         await updateConfigMap(qrText);
         await reloadHomeAssistant();
@@ -58,7 +63,7 @@ const updateConfigMap = (qrText) => {
             }
 
             // Append new data to the existing configuration
-            let configurationYaml = configMap.data['configuration.yaml'];
+            let configurationYaml = configMap.data['configuration.yaml'] || '';
             configurationYaml += `\n\n        - name: "${qrText}"`;
 
             // Create patch object
@@ -68,8 +73,11 @@ const updateConfigMap = (qrText) => {
                 }
             };
 
+            // Properly escape JSON for the patch command
+            const patchJson = JSON.stringify(patch).replace(/'/g, "\\'").replace(/"/g, '\\"');
+
             // Apply the patch
-            exec(`kubectl patch configmap home-assistant-config --namespace iot-home-assistant --type merge --patch '${JSON.stringify(patch)}'`, (patchError, patchStdout) => {
+            exec(`kubectl patch configmap home-assistant-config --namespace iot-home-assistant --type merge --patch "${patchJson}"`, (patchError, patchStdout) => {
                 if (patchError) {
                     console.error('Error updating ConfigMap:', patchError);
                     return reject(patchError);
