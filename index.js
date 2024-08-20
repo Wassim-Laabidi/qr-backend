@@ -4,7 +4,7 @@ const { exec } = require('child_process');
 const cors = require('cors'); // Import the cors middleware
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3002;
 //Step1
 // app.use(cors({
 //     credentials: true,
