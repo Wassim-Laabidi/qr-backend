@@ -66,28 +66,24 @@ const updateConfigMap = (qrText) => {
             let configurationYaml = configMap.data['configuration.yaml'] || '';
             configurationYaml += `\n\n        - name: "${qrText}"`;
 
-            // Create patch object
-            const patch = {
-                data: {
-                    'configuration.yaml': configurationYaml
-                }
-            };
+            // Create a temporary file with the new configuration
+            const fs = require('fs');
+            const patchFile = '/tmp/patch.yaml';
+            fs.writeFileSync(patchFile, `data:\n  configuration.yaml: |-\n    ${configurationYaml.replace(/\n/g, '\n    ')}`);
 
-            // Properly escape JSON for the patch command
-            const patchJson = JSON.stringify(patch).replace(/'/g, "\\'").replace(/"/g, '\\"');
-
-            // Apply the patch
-            exec(`kubectl patch configmap home-assistant-config --namespace iot-home-assistant --type merge --patch "${patchJson}"`, (patchError, patchStdout) => {
-                if (patchError) {
-                    console.error('Error updating ConfigMap:', patchError);
-                    return reject(patchError);
+            // Apply the patch using `kubectl apply`
+            exec(`kubectl apply -f ${patchFile} --namespace iot-home-assistant`, (applyError, applyStdout) => {
+                if (applyError) {
+                    console.error('Error applying ConfigMap patch:', applyError);
+                    return reject(applyError);
                 }
-                console.log('ConfigMap updated successfully:', patchStdout);
+                console.log('ConfigMap patched successfully:', applyStdout);
                 resolve();
             });
         });
     });
 };
+
 
 // Function to reload the Home Assistant deployment
 const reloadHomeAssistant = () => {
