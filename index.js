@@ -65,21 +65,56 @@ const updateConfigMap = (qrText) => {
                     return reject(parseError);
                 }
 
-                // Append new data to the existing configuration
                 let configurationYaml = configMap.data['configuration.yaml'] || '';
-                // Properly escape special characters for YAML
-                const escapedQrText = qrText.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-                configurationYaml += `\n\n        - name: "${escapedQrText}"`;
 
-                // Create patch object
+                const firstLine = qrText.split('\n')[0].trim();
+                const containsSensor = firstLine.includes('sensor');
+                const containsSwitch = firstLine.includes('switch');
+
+                if (!containsSensor && !containsSwitch) {
+                    console.log('Scanned QR code does not match "sensor" or "switch" criteria:', firstLine);
+                    return resolve('No matching "sensor" or "switch" in scanned QR code.');
+                }
+
+                if (configurationYaml.includes(firstLine)) {
+                    console.log('Device already scanned:', firstLine);
+                    return resolve('Device already scanned');
+                }
+
+                // Escape special characters for YAML
+                const escapedQrText = qrText.replace(/\\/g, '\\\\');
+                const lines = escapedQrText.split('\n');
+                const formattedLines = lines.map((line, index) => {
+                    const indent = index === 0 ? '    ' : '    ';
+                    return `${indent}${line}`;
+                });
+                const formattedQrText = formattedLines.join('\n');
+
+                let insertPosition;
+                if (containsSensor) {
+                    insertPosition = configurationYaml.indexOf('sensor:');
+                } else if (containsSwitch) {
+                    insertPosition = configurationYaml.indexOf('switch:');
+                }
+
+                if (insertPosition !== -1) {
+                    // Insert the formatted QR text before the relevant block (sensor or switch)
+                    configurationYaml =
+                        configurationYaml.slice(0, insertPosition + 7) +
+                        `\n\n${formattedQrText}\n` +
+                        configurationYaml.slice(insertPosition + 7);
+                } else {
+                    // Append the QR text at the end if the block is not found
+                    // configurationYaml += `\n\n${formattedQrText}`;
+                }
+
                 const patch = {
                     data: {
                         'configuration.yaml': configurationYaml,
                     },
                 };
 
-                // Apply the patch using kubectl's --patch-file
-                const patchJson = JSON.stringify(patch, null, 2); // Pretty-print JSON for readability
+                const patchJson = JSON.stringify(patch, null, 2);
                 const fs = require('fs');
                 const tmpFilePath = '/tmp/patch.json';
 
@@ -98,7 +133,6 @@ const updateConfigMap = (qrText) => {
                             }
                             console.log('ConfigMap updated successfully:', patchStdout);
 
-                            // Optionally delete the temporary file
                             fs.unlink(tmpFilePath, (unlinkErr) => {
                                 if (unlinkErr) {
                                     console.error('Error deleting temporary patch file:', unlinkErr);
@@ -112,6 +146,7 @@ const updateConfigMap = (qrText) => {
         );
     });
 };
+
 
 // Function to reload the Home Assistant deployment
 const reloadHomeAssistant = () => {
